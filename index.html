@@ -32,6 +32,7 @@
 
         .container {
             display: flex;
+            align-items: flex-start;
             gap: 20px;
             background: #1a1c29;
             padding: 20px;
@@ -147,10 +148,14 @@
 
         /* D-pad */
         .touch-controls {
+            --btn: 64px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            gap: 24px;
+            gap: 16px;
+            width: 100%;
+            max-width: 400px;
+            padding: 0 4px;
             margin-top: 16px;
             user-select: none;
             -webkit-user-select: none;
@@ -159,9 +164,14 @@
 
         .dpad {
             display: grid;
-            grid-template-columns: repeat(3, 64px);
-            grid-template-rows: repeat(3, 64px);
+            grid-template-columns: repeat(3, var(--btn));
+            grid-template-rows: var(--btn);
             gap: 4px;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 12px;
         }
 
         .dpad-btn {
@@ -185,20 +195,15 @@
             box-shadow: 0 0 15px rgba(0, 240, 255, 0.8);
         }
 
-        .dpad-up { grid-area: 1 / 2; }
-        .dpad-left { grid-area: 2 / 1; }
-        .dpad-right { grid-area: 2 / 3; }
-        .dpad-down { grid-area: 3 / 2; }
-
-        .drop-btn {
-            width: 96px;
-            height: 96px;
+        .action-btn {
+            width: calc(var(--btn) + 8px);
+            height: calc(var(--btn) + 8px);
             border-radius: 50%;
             background: #ff007f;
             color: #fff;
             border: none;
             font-family: inherit;
-            font-size: 0.8rem;
+            font-size: 0.7rem;
             font-weight: bold;
             box-shadow: 0 0 12px rgba(255, 0, 127, 0.6);
             cursor: pointer;
@@ -206,10 +211,22 @@
             -webkit-tap-highlight-color: transparent;
         }
 
-        .drop-btn.active,
-        .drop-btn:active {
+        .action-btn.rotate-btn {
+            background: #00b8c4;
+            color: #0f111a;
+            box-shadow: 0 0 12px rgba(0, 240, 255, 0.5);
+        }
+
+        .action-btn.active,
+        .action-btn:active {
             background: #ff3399;
             box-shadow: 0 0 20px rgba(255, 0, 127, 0.9);
+        }
+
+        .action-btn.rotate-btn.active,
+        .action-btn.rotate-btn:active {
+            background: #00f0ff;
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.9);
         }
 
         @media (max-width: 600px) {
@@ -218,22 +235,48 @@
                 justify-content: flex-start;
                 padding: 12px 0 24px;
             }
+            h1 {
+                font-size: 1.8rem;
+                margin-bottom: 8px;
+            }
+            /* Mantém a lateral ao lado do campo, num ecrã estreito */
             .container {
-                flex-direction: column;
-                align-items: center;
+                gap: 10px;
+                padding: 10px;
+            }
+            .game-board canvas {
+                width: 190px;
+                height: auto;
             }
             .sidebar {
-                width: 240px;
-                flex-direction: row;
-                flex-wrap: wrap;
-                gap: 10px;
+                width: 84px;
             }
             .panel {
-                flex: 1;
-                margin-bottom: 0;
+                padding: 8px 4px;
+                margin-bottom: 8px;
+            }
+            .panel h2 {
+                font-size: 0.7rem;
+            }
+            .panel .value {
+                font-size: 1.1rem;
+            }
+            #next-canvas,
+            #next {
+                width: 60px;
+                height: 60px;
             }
             .controls-info {
                 display: none;
+            }
+            .btn {
+                padding: 8px 2px;
+                font-size: 0.7rem;
+            }
+            .touch-controls {
+                --btn: 52px;
+                max-width: 316px;
+                padding: 0;
             }
         }
     </style>
@@ -289,12 +332,14 @@
 
     <div class="touch-controls">
         <div class="dpad">
-            <button class="dpad-btn dpad-up" data-action="rotate" aria-label="Rodar">▲</button>
-            <button class="dpad-btn dpad-left" data-action="left" aria-label="Esquerda">◀</button>
-            <button class="dpad-btn dpad-right" data-action="right" aria-label="Direita">▶</button>
-            <button class="dpad-btn dpad-down" data-action="down" aria-label="Descer">▼</button>
+            <button class="dpad-btn" data-action="left" aria-label="Esquerda">◀</button>
+            <button class="dpad-btn" data-action="down" aria-label="Descer">▼</button>
+            <button class="dpad-btn" data-action="right" aria-label="Direita">▶</button>
         </div>
-        <button class="drop-btn" data-action="drop" aria-label="Queda instantânea">QUEDA</button>
+        <div class="action-buttons">
+            <button class="action-btn rotate-btn" data-action="rotate" aria-label="Rodar">RODAR</button>
+            <button class="action-btn" data-action="drop" aria-label="Queda instantânea">QUEDA</button>
+        </div>
     </div>
 
     <script>
