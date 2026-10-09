@@ -169,6 +169,40 @@
             color: #fff;
         }
 
+        /* Mensagens de pontuação (Tetris, T-Spin, combo, nível) */
+        .toast {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 24%;
+            text-align: center;
+            pointer-events: none;
+            opacity: 0;
+            font-weight: bold;
+            color: #fff;
+            line-height: 1.35;
+            font-size: clamp(0.8rem, calc(var(--cell) * 0.7), 1.3rem);
+            text-shadow: 0 0 8px #00f0ff, 0 0 16px #00f0ff;
+        }
+
+        .toast .big {
+            font-size: 1.5em;
+            color: #ffe600;
+            text-shadow: 0 0 10px #ff9d00, 0 0 20px #ff9d00;
+        }
+
+        .toast.show {
+            animation: toast-pop 1.3s ease-out forwards;
+        }
+
+        @keyframes toast-pop {
+            0%   { opacity: 0; transform: translateY(12px) scale(0.8); }
+            15%  { opacity: 1; transform: translateY(0) scale(1.08); }
+            25%  { transform: scale(1); }
+            75%  { opacity: 1; }
+            100% { opacity: 0; transform: translateY(-16px); }
+        }
+
         .overlay h2 {
             font-size: clamp(1.2rem, calc(var(--cell) * 1.2), 2rem);
             color: #ff007f;
@@ -333,6 +367,7 @@
             <div id="pause-overlay" class="overlay hidden">
                 <h2>PAUSADO</h2>
             </div>
+            <div id="toast" class="toast" aria-live="polite"></div>
         </div>
 
         <div class="sidebar">
@@ -395,9 +430,31 @@
         const AudioCtx = window.AudioContext || window.webkitAudioContext;
         let audioCtx = null;
 
+        // Sequência de notas curtas (tetris, t-spin, subida de nível)
+        function playArpeggio(freqs, step, vol) {
+            const t0 = audioCtx.currentTime;
+            freqs.forEach((f, i) => {
+                const o = audioCtx.createOscillator();
+                const g = audioCtx.createGain();
+                const t = t0 + i * step;
+                o.type = 'square';
+                o.frequency.setValueAtTime(f, t);
+                g.gain.setValueAtTime(vol, t);
+                g.gain.exponentialRampToValueAtTime(0.001, t + step * 1.6);
+                o.connect(g);
+                g.connect(audioCtx.destination);
+                o.start(t);
+                o.stop(t + step * 1.7);
+            });
+        }
+
         function playSound(type) {
             if (!audioCtx) audioCtx = new AudioCtx();
             if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            if (type === 'tetris') { playArpeggio([523, 659, 784, 1047], 0.07, 0.06); return; }
+            if (type === 'tspin') { playArpeggio([392, 523, 659, 784], 0.07, 0.06); return; }
+            if (type === 'levelup') { playArpeggio([440, 554, 659, 880], 0.09, 0.06); return; }
 
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
@@ -473,10 +530,32 @@
         let isPaused = false;
         let isGameOver = false;
 
+        // Pontuação
+        const LINE_NAMES = ['', 'SINGLE', 'DOUBLE', 'TRIPLE', 'TETRIS!'];
+        const LINE_SCORES = [0, 100, 300, 500, 800];       // × nível
+        const TSPIN_SCORES = [400, 800, 1200, 1600];       // × nível (0 a 3 linhas)
+        const COMBO_BONUS = 50;                            // × combo × nível, a partir da 2.ª limpeza seguida
+        let combo = -1;                  // -1: sem sequência; 0: 1.ª limpeza; 1: 2.ª seguida...
+        let lastMoveWasRotation = false; // último movimento da peça foi uma rotação (T-Spin)
+
+        // Velocidade: cada nível reduz o intervalo de queda ~18% (mínimo 60 ms)
+        function speedForLevel(level) {
+            return Math.max(60, Math.round(1000 * Math.pow(0.82, level - 1)));
+        }
+
+        const toastEl = document.getElementById('toast');
+        function showToast(lines) {
+            toastEl.innerHTML = lines.map((t, i) => `<div class="${i === 0 ? 'big' : ''}">${t}</div>`).join('');
+            toastEl.classList.remove('show');
+            void toastEl.offsetWidth; // reinicia a animação
+            toastEl.classList.add('show');
+        }
+
         function getRandomPiece() {
             const keys = 'IJLOSTZ';
             const name = keys[Math.floor(Math.random() * keys.length)];
-            return PIECES[name].matrix;
+            // Cópia: as rotações alteram a matriz, não podem estragar o molde da peça
+            return PIECES[name].matrix.map(row => row.slice());
         }
 
         function collide(arena, player) {
@@ -528,6 +607,7 @@
                     return;
                 }
             }
+            lastMoveWasRotation = true;
             playSound('rotate');
         }
 
@@ -536,8 +616,27 @@
             if (collide(arena, player)) {
                 player.pos.x -= dir;
             } else {
+                lastMoveWasRotation = false;
                 playSound('move');
             }
+        }
+
+        // T-Spin: peça T, último movimento foi uma rotação e pelo menos 3 dos 4
+        // cantos à volta do centro do T estão ocupados (peças, paredes ou chão)
+        function isTSpin() {
+            if (!lastMoveWasRotation) return false;
+            if (!player.matrix.some(row => row.includes(6))) return false;
+            const cx = player.pos.x + 1;
+            const cy = player.pos.y + 1;
+            let corners = 0;
+            for (const [dx, dy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+                const x = cx + dx;
+                const y = cy + dy;
+                if (x < 0 || x >= BOARD_WIDTH || y >= BOARD_HEIGHT || (y >= 0 && arena[y][x] !== 0)) {
+                    corners++;
+                }
+            }
+            return corners >= 3;
         }
 
         function playerReset() {
@@ -548,6 +647,7 @@
             player.nextPiece = getRandomPiece();
             player.pos.y = 0;
             player.pos.x = (BOARD_WIDTH / 2 | 0) - (player.matrix[0].length / 2 | 0);
+            lastMoveWasRotation = false;
 
             if (collide(arena, player)) {
                 isGameOver = true;
@@ -558,7 +658,7 @@
             drawNext();
         }
 
-        function arenaSweep() {
+        function arenaSweep(tSpin = false) {
             let rowCount = 0;
             outer: for (let y = arena.length - 1; y >= 0; --y) {
                 for (let x = 0; x < arena[y].length; ++x) {
@@ -572,39 +672,73 @@
                 rowCount++;
             }
 
-            if (rowCount > 0) {
-                playSound('clear');
-                const lineScores = [0, 100, 300, 500, 800];
-                player.score += lineScores[rowCount] * player.level;
-                player.lines += rowCount;
-                player.level = Math.floor(player.lines / 10) + 1;
-                dropInterval = Math.max(100, 1000 - (player.level - 1) * 100);
-                updateScore();
+            // Sem linhas: o T-Spin dá bónus na mesma e a sequência de combos acaba
+            if (rowCount === 0) {
+                combo = -1;
+                if (tSpin) {
+                    const points = TSPIN_SCORES[0] * player.level;
+                    player.score += points;
+                    playSound('tspin');
+                    showToast(['T-SPIN', `+${points}`]);
+                    updateScore();
+                }
+                return;
             }
+
+            combo++;
+            const prevLevel = player.level;
+            let points = (tSpin ? TSPIN_SCORES[Math.min(rowCount, 3)] : LINE_SCORES[rowCount]) * prevLevel;
+            if (combo > 0) points += COMBO_BONUS * combo * prevLevel;
+
+            player.score += points;
+            player.lines += rowCount;
+            player.level = Math.floor(player.lines / 10) + 1;
+            dropInterval = speedForLevel(player.level);
+
+            const leveledUp = player.level > prevLevel;
+            const label = (tSpin ? 'T-SPIN ' : '') + LINE_NAMES[rowCount];
+            const toast = [label, `+${points}`];
+            if (combo > 0) toast.push(`COMBO x${combo + 1}`);
+            if (leveledUp) toast.push(`NÍVEL ${player.level}`);
+            showToast(toast);
+
+            if (leveledUp) playSound('levelup');
+            else if (tSpin) playSound('tspin');
+            else if (rowCount === 4) playSound('tetris');
+            else playSound('clear');
+            updateScore();
+        }
+
+        // Fixa a peça no campo, gera a seguinte e processa as linhas completas
+        function lockPiece() {
+            const tSpin = isTSpin(); // tem de ser avaliado antes de a peça ser substituída
+            merge(arena, player);
+            arenaSweep(tSpin);   // limpa as linhas antes de gerar a peça seguinte (senão pode haver Game Over falso)
+            playerReset();
+            updateScore();
+            dropCounter = 0;
         }
 
         function playerDrop() {
             player.pos.y++;
             if (collide(arena, player)) {
                 player.pos.y--;
-                merge(arena, player);
-                playerReset();
-                arenaSweep();
-                updateScore();
+                lockPiece();
+            } else {
+                lastMoveWasRotation = false;
             }
             dropCounter = 0;
         }
 
         function hardDrop() {
+            const startY = player.pos.y;
             while (!collide(arena, player)) {
                 player.pos.y++;
             }
             player.pos.y--;
-            merge(arena, player);
-            playerReset();
-            arenaSweep();
-            updateScore();
-            dropCounter = 0;
+            // Se a peça desceu, a rotação deixa de ser o último movimento
+            if (player.pos.y !== startY) lastMoveWasRotation = false;
+            lockPiece();
         }
 
         function drawMatrix(matrix, offset, ctx) {
@@ -705,7 +839,10 @@
             player.score = 0;
             player.lines = 0;
             player.level = 1;
-            dropInterval = 1000;
+            dropInterval = speedForLevel(1);
+            combo = -1;
+            lastMoveWasRotation = false;
+            toastEl.classList.remove('show');
             isGameOver = false;
             isPaused = false;
             document.getElementById('game-over-overlay').classList.add('hidden');
