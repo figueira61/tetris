@@ -9,7 +9,7 @@
             --pad: 10px;
             --gap: 10px;
             --edge: 16px;      /* folga lateral da página */
-            --chrome: 200px;   /* altura ocupada por título, margens e controlos (sem o botão) */
+            --chrome: 234px;   /* altura ocupada por título, margens e controlos (sem o botão) */
             --vh: 100vh;
             --side: clamp(78px, 20vw, 160px);
             --btn: clamp(48px, 14vw, 72px);
@@ -319,7 +319,7 @@
                 --pad: 6px;
                 --gap: 6px;
                 --edge: 8px;
-                --chrome: 182px;
+                --chrome: 216px;
                 --side: clamp(66px, 16vw, 90px);
                 --btn: clamp(44px, 12.5vw, 72px);
             }
@@ -351,11 +351,44 @@
                 display: none;
             }
         }
+
+        /* ===== Multiplayer: login + Hall of Fame ===== */
+        .rt-sobre { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; padding: 14px; background: rgba(3, 5, 12, 0.88); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); touch-action: auto; }
+        .rt-sobre[hidden] { display: none; }
+        .rt-caixa { font-family: 'Courier New', Courier, monospace; width: 100%; max-width: 360px; max-height: 100%; overflow: auto; border-radius: 16px; padding: 18px; text-align: center; color: #fff; background: rgba(12, 16, 28, 0.97); border: 1px solid rgba(0, 240, 255, 0.45); box-shadow: 0 0 30px rgba(0, 240, 255, 0.22); }
+        .rt-caixa h2 { font-family: 'Press Start 2P', monospace; font-size: 14px; line-height: 1.5; margin: 0 0 8px; color: #00f0ff; }
+        .rt-caixa p.rt-sub { font-size: 13px; color: #9ca3af; margin: 0 0 12px; font-weight: 500; }
+        .rt-caixa input { -webkit-user-select: text; user-select: text; touch-action: auto; width: 100%; padding: 11px 12px; margin-bottom: 8px; border-radius: 10px; border: 1px solid rgba(255,255,255,.18); background: rgba(0,0,0,.45); color: #fff; font-size: 16px; font-family: inherit; font-weight: 700; text-align: center; outline: none; }
+        .rt-caixa input:focus { border-color: #00f0ff; box-shadow: 0 0 0 2px rgba(0, 240, 255, .3); }
+        .rt-abas { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 12px; }
+        .rt-aba, .rt-btn { font-family: inherit; font-weight: 800; font-size: 13px; letter-spacing: .04em; border-radius: 10px; padding: 10px; border: 1px solid rgba(255,255,255,.18); background: rgba(31,41,55,.8); color: #d1d5db; cursor: pointer; }
+        .rt-aba.on { border-color: #00f0ff; background: rgba(0, 240, 255, .2); color: #00f0ff; }
+        .rt-btn.principal { width: 100%; padding: 12px; font-size: 15px; border: 0; color: #111827; background: #00f0ff; }
+        .rt-btn.sec { width: 100%; margin-top: 8px; }
+        .rt-btn:disabled { opacity: .55; }
+        .rt-erro { min-height: 16px; margin: 2px 0 8px; font-size: 13px; font-weight: 700; color: #f87171; }
+        .rt-tab { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
+        .rt-tab th { font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: #9ca3af; padding: 6px 4px; border-bottom: 1px solid rgba(255,255,255,.12); }
+        .rt-tab td { padding: 7px 4px; border-bottom: 1px solid rgba(255,255,255,.06); }
+        .rt-tab td.n, .rt-tab th.n { text-align: right; }
+        .rt-tab tr.eu td { background: rgba(0, 240, 255, .15); color: #00f0ff; font-weight: 700; }
+        .rt-lista { max-height: 52vh; overflow: auto; margin-bottom: 10px; -webkit-overflow-scrolling: touch; }
+        .rt-nota { margin-top: 6px; font-size: 12px; color: #fbbf24; min-height: 14px; }
+        .rt-barra { font-family: 'Courier New', Courier, monospace; display: flex; justify-content: space-between; align-items: center; gap: 8px; min-height: 18px; font-size: 11px; font-weight: 700; color: #8f93a2; }
+        .rt-barra b { color: #00f0ff; }
+        .rt-barra button { background: none; border: 0; text-decoration: underline; font: inherit; cursor: pointer; padding: 2px 4px; color: #00f0ff; }
+        .rt-hall-btn { background: #1a1c29; border: 1px solid #2a2d3d; color: #00f0ff; border-radius: 8px; padding: 4px 10px; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
     </style>
 </head>
 <body>
 
     <h1>TETRIS</h1>
+
+    <div class="rt-barra" style="width: min(var(--stage-w), 100%); margin-bottom: 8px; flex-wrap: wrap;">
+        <span id="rt-jog"></span>
+        <button id="hallBtn" type="button" class="rt-hall-btn" aria-label="Hall of Fame">🏆 Hall</button>
+        <span id="rt-estado" style="flex-basis: 100%; text-align: center;"></span>
+    </div>
 
     <div class="container">
         <div class="game-board">
@@ -414,6 +447,151 @@
             <button class="action-btn" data-action="drop" aria-label="Queda instantânea">QUEDA</button>
         </div>
     </div>
+
+
+    <!-- Login (nome + PIN) -->
+    <div id="rt-login" class="rt-sobre" hidden>
+        <form id="rt-form" class="rt-caixa" autocomplete="off">
+            <h2>🧱 TEMPLO DO RETRO</h2>
+            <p class="rt-sub">Escolhe o teu nome de jogador (único) e um PIN de 4 a 6 dígitos.</p>
+            <div class="rt-abas">
+                <button type="button" class="rt-aba on" id="rt-aba-entrar">ENTRAR</button>
+                <button type="button" class="rt-aba" id="rt-aba-criar">CRIAR JOGADOR</button>
+            </div>
+            <input id="rt-nome" type="text" maxlength="16" placeholder="Nome de jogador" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Nome de jogador">
+            <input id="rt-pin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="PIN (4 a 6 dígitos)" aria-label="PIN">
+            <div id="rt-erro" class="rt-erro" role="alert"></div>
+            <button type="submit" id="rt-ok" class="rt-btn principal">ENTRAR</button>
+            <button type="button" id="rt-offline" class="rt-btn sec" hidden>JOGAR SEM RANKING</button>
+        </form>
+    </div>
+
+    <!-- Hall of Fame -->
+    <div id="rt-hall" class="rt-sobre" hidden>
+        <div class="rt-caixa">
+            <h2>🏆 HALL OF FAME</h2>
+            <p class="rt-sub">Recordes de todos os jogadores · Tetris</p>
+            <div class="rt-lista"><table class="rt-tab"><thead><tr><th>#</th><th>Jogador</th><th class="n">Recorde</th><th class="n">Jogos</th></tr></thead><tbody id="rt-corpo"></tbody></table></div>
+            <p id="rt-hall-nota" class="rt-nota"></p>
+            <button type="button" id="rt-hall-fecha" class="rt-btn principal">FECHAR</button>
+        </div>
+    </div>
+
+    <script>
+/* ===== RETRO: cliente do Templo do Retro (Supabase) — partilhado pelos 3 sites ===== */
+var RETRO = (function () {
+  var URL = "https://gzehglkrrpwahuzkqjxa.supabase.co";
+  var KEY = "sb_publishable_9EI749gU417uUY9bPCTvzA_gmFEwAwm";
+  var CHAVE = "retro.sessao";
+  var sessao = null;
+
+  function rpc(fn, corpo) {
+    var ctl = typeof AbortController !== "undefined" ? new AbortController() : null;
+    var t = ctl ? setTimeout(function () { ctl.abort(); }, 10000) : null;
+    return fetch(URL + "/rest/v1/rpc/" + fn, {
+      method: "POST",
+      headers: { "apikey": KEY, "Content-Type": "application/json" },
+      body: JSON.stringify(corpo || {}),
+      signal: ctl ? ctl.signal : undefined
+    }).then(function (r) {
+      if (t) clearTimeout(t);
+      if (!r.ok) throw new Error("http_" + r.status);
+      return r.json();
+    }, function (e) {
+      if (t) clearTimeout(t);
+      throw new Error("rede");
+    });
+  }
+
+  function lerSessao() {
+    try {
+      var s = JSON.parse(localStorage.getItem(CHAVE) || "null");
+      if (s && s.username && s.token) { sessao = s; return s; }
+    } catch (e) {}
+    sessao = null; return null;
+  }
+  function guardarSessao(username, token) {
+    sessao = { username: username, token: token };
+    try { localStorage.setItem(CHAVE, JSON.stringify(sessao)); } catch (e) {}
+  }
+  function limparSessao() {
+    sessao = null;
+    try { localStorage.removeItem(CHAVE); } catch (e) {}
+  }
+
+  function trata(p) {
+    return p.then(function (r) {
+      if (r && r.ok && r.token) guardarSessao(r.username, r.token);
+      return r;
+    });
+  }
+  function entrar(nome, pin) { return trata(rpc("login_player", { p_username: nome, p_pin: pin })); }
+  function criar(nome, pin) { return trata(rpc("register_player", { p_username: nome, p_pin: pin })); }
+
+  // Valida a sessão guardada. Devolve {ok:true,username} | {ok:false} (sessão inválida).
+  // Se não houver rede, rejeita (quem chama decide continuar com a sessão local).
+  function validar() {
+    var s = lerSessao();
+    if (!s) return Promise.resolve({ ok: false, error: "sem_sessao" });
+    return rpc("check_session", { p_token: s.token }).then(function (r) {
+      if (!r || !r.ok) limparSessao();
+      return r;
+    });
+  }
+  function sair() {
+    var s = sessao || lerSessao();
+    limparSessao();
+    if (!s) return Promise.resolve();
+    return rpc("logout_player", { p_token: s.token }).catch(function () {});
+  }
+  function enviar(jogo, dados) {
+    var s = sessao || lerSessao();
+    if (!s) return Promise.resolve({ ok: false, error: "invalid_session" });
+    return rpc("submit_result", {
+      p_token: s.token, p_game: jogo,
+      p_score: dados && dados.score != null ? dados.score : null,
+      p_result: dados && dados.result ? dados.result : null
+    }).then(function (r) {
+      if (r && !r.ok && r.error === "invalid_session") limparSessao();
+      return r;
+    });
+  }
+  function ranking(jogo) { return rpc("get_leaderboard", { p_game: jogo, p_limit: 500 }); }
+  function minhasStats() {
+    var s = sessao || lerSessao();
+    if (!s) return Promise.resolve({ ok: false, error: "invalid_session" });
+    return rpc("get_my_stats", { p_token: s.token });
+  }
+
+  function mensagemErro(r) {
+    var e = r && r.error;
+    if (e === "invalid_name") return "Nome inválido: 2 a 16 caracteres (letras, números, espaço . _ -).";
+    if (e === "invalid_pin") return "PIN inválido: usa 4 a 6 dígitos.";
+    if (e === "name_taken") return "Esse nome já está em uso. Escolhe outro.";
+    if (e === "wrong_credentials") return "Nome ou PIN errado.";
+    if (e === "locked") {
+      var m = Math.max(1, Math.ceil((r.retry_in || 60) / 60));
+      return "Conta bloqueada por PINs errados. Tenta daqui a " + m + " min.";
+    }
+    if (e === "full") return "O Templo está cheio de jogadores.";
+    if (e === "invalid_session") return "A sessão expirou. Entra de novo.";
+    return "Erro inesperado. Tenta de novo.";
+  }
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  return {
+    rpc: rpc, sessao: function () { return sessao || lerSessao(); },
+    entrar: entrar, criar: criar, validar: validar, sair: sair,
+    enviar: enviar, ranking: ranking, minhasStats: minhasStats,
+    mensagemErro: mensagemErro, esc: esc,
+    redeErro: function (e) { return !!e && (e.message === "rede" || /^http_/.test(e.message)); }
+  };
+})();
+    </script>
 
     <script>
         const canvas = document.getElementById('tetris');
@@ -653,6 +831,7 @@
                 isGameOver = true;
                 playSound('gameover');
                 document.getElementById('game-over-overlay').classList.remove('hidden');
+                rtEnviaPontuacao(player.score);
             }
 
             drawNext();
@@ -808,7 +987,7 @@
             const deltaTime = time - lastTime;
             lastTime = time;
 
-            if (!isPaused && !isGameOver) {
+            if (!isPaused && !isGameOver && !rtOverlayAberto()) {
                 dropCounter += deltaTime;
                 if (dropCounter > dropInterval) {
                     playerDrop();
@@ -853,6 +1032,7 @@
         }
 
         document.addEventListener('keydown', event => {
+            if (rtTeclaEmCampo(event) || rtOverlayAberto()) return;
             if (isGameOver) return;
 
             if (event.keyCode === 80) { // P
@@ -949,6 +1129,146 @@
         }
         window.addEventListener('resize', scheduleResize);
         window.addEventListener('orientationchange', scheduleResize);
+
+
+        // ===== Multiplayer (Supabase) =====
+        const RT_JOGO = 'tetris';
+        const rtLogin = document.getElementById('rt-login');
+        const rtHall = document.getElementById('rt-hall');
+        const rtNome = document.getElementById('rt-nome');
+        const rtPin = document.getElementById('rt-pin');
+        const rtErro = document.getElementById('rt-erro');
+        const rtOk = document.getElementById('rt-ok');
+        const rtOffline = document.getElementById('rt-offline');
+        let rtModo = 'entrar';
+        let rtSemRanking = false;
+
+        function rtOverlayAberto() { return !rtLogin.hidden || !rtHall.hidden; }
+        function rtTeclaEmCampo(e) { return !!(e.target && e.target.tagName === 'INPUT'); }
+
+        function rtAplicaRecorde() {}
+
+        function rtMostraJogador() {
+            const el = document.getElementById('rt-jog');
+            const s = RETRO.sessao();
+            if (s) {
+                el.innerHTML = 'Jogador: <b>' + RETRO.esc(s.username) + '</b> <button type="button" id="rt-sair">Sair</button>';
+                document.getElementById('rt-sair').addEventListener('click', () => {
+                    RETRO.sair();
+                    rtSemRanking = false;
+                    rtMostraJogador();
+                    rtAbreLogin();
+                });
+            } else if (rtSemRanking) {
+                el.innerHTML = 'Sem ranking <button type="button" id="rt-entrar-menu">Entrar</button>';
+                document.getElementById('rt-entrar-menu').addEventListener('click', rtAbreLogin);
+            } else {
+                el.textContent = '';
+            }
+        }
+        function rtModoSet(m) {
+            rtModo = m;
+            document.getElementById('rt-aba-entrar').classList.toggle('on', m === 'entrar');
+            document.getElementById('rt-aba-criar').classList.toggle('on', m === 'criar');
+            rtOk.textContent = m === 'entrar' ? 'ENTRAR' : 'CRIAR E ENTRAR';
+            rtErro.textContent = '';
+        }
+        function rtAbreLogin() {
+            rtErro.textContent = '';
+            rtPin.value = '';
+            rtOffline.hidden = true;
+            rtLogin.hidden = false;
+            setTimeout(() => rtNome.focus(), 50);
+        }
+        function rtAposLogin() {
+            rtLogin.hidden = true;
+            rtSemRanking = false;
+            rtMostraJogador();
+            RETRO.minhasStats().then(r => {
+                if (r && r.ok) {
+                    const st = (r.stats && r.stats[RT_JOGO]) || { best_score: 0 };
+                    rtAplicaRecorde(st.best_score || 0);
+                }
+            }).catch(() => {});
+        }
+        document.getElementById('rt-aba-entrar').addEventListener('click', () => rtModoSet('entrar'));
+        document.getElementById('rt-aba-criar').addEventListener('click', () => rtModoSet('criar'));
+        document.getElementById('rt-form').addEventListener('submit', (ev) => {
+            ev.preventDefault();
+            const nome = rtNome.value.trim();
+            const pin = rtPin.value.trim();
+            if (nome.length < 2) { rtErro.textContent = 'Escreve o teu nome de jogador.'; return; }
+            if (!/^[0-9]{4,6}$/.test(pin)) { rtErro.textContent = 'O PIN tem de ter 4 a 6 dígitos.'; return; }
+            rtErro.textContent = '';
+            rtOk.disabled = true;
+            (rtModo === 'entrar' ? RETRO.entrar(nome, pin) : RETRO.criar(nome, pin)).then(r => {
+                rtOk.disabled = false;
+                if (r && r.ok) { rtAposLogin(); } else { rtErro.textContent = RETRO.mensagemErro(r); }
+            }, () => {
+                rtOk.disabled = false;
+                rtErro.textContent = 'Sem ligação ao servidor. Tenta de novo ou joga sem ranking.';
+                rtOffline.hidden = false;
+            });
+        });
+        rtOffline.addEventListener('click', () => {
+            rtSemRanking = true;
+            rtLogin.hidden = true;
+            rtMostraJogador();
+        });
+
+        function rtAbreHall() {
+            const corpo = document.getElementById('rt-corpo');
+            const nota = document.getElementById('rt-hall-nota');
+            corpo.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#9ca3af">A carregar…</td></tr>';
+            nota.textContent = '';
+            rtHall.hidden = false;
+            RETRO.ranking(RT_JOGO).then(lista => {
+                const eu = (RETRO.sessao() || {}).username;
+                if (!lista || !lista.length) {
+                    corpo.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#9ca3af">Ainda não há jogadores.</td></tr>';
+                    return;
+                }
+                corpo.innerHTML = lista.map((j, i) => {
+                    const medalha = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1);
+                    return '<tr' + (eu && j.username.toLowerCase() === eu.toLowerCase() ? ' class="eu"' : '') + '><td>' + medalha + '</td><td>' + RETRO.esc(j.username) + '</td><td class="n">' + j.best_score + '</td><td class="n">' + j.games + '</td></tr>';
+                }).join('');
+            }).catch(() => {
+                corpo.innerHTML = '';
+                nota.textContent = 'Sem ligação ao servidor. Não foi possível carregar o ranking.';
+            });
+        }
+        document.getElementById('hallBtn').addEventListener('click', rtAbreHall);
+        document.getElementById('rt-hall-fecha').addEventListener('click', () => { rtHall.hidden = true; });
+
+        function rtEnviaPontuacao(pontos) {
+            const el = document.getElementById('rt-estado');
+            el.textContent = '';
+            if (!RETRO.sessao()) { if (rtSemRanking) el.textContent = 'Sem ranking: pontuação não enviada.'; return; }
+            el.textContent = 'A enviar pontuação…';
+            RETRO.enviar(RT_JOGO, { score: pontos }).then(r => {
+                if (r && r.ok) {
+                    el.textContent = '✔ Pontuação registada no Hall of Fame.';
+                    if (r.stats && r.stats.best_score != null) rtAplicaRecorde(r.stats.best_score);
+                } else if (r && r.error === 'invalid_session') {
+                    el.textContent = 'Sessão expirada. Entra de novo para registar pontuações.';
+                    rtMostraJogador();
+                } else if (r && r.error === 'too_fast') {
+                    el.textContent = 'Pontuação não registada (partida demasiado rápida).';
+                } else {
+                    el.textContent = 'Não foi possível registar a pontuação.';
+                }
+            }, () => { el.textContent = 'Sem ligação: pontuação não registada no ranking.'; });
+        }
+
+        // Arranque: validar sessão guardada ou pedir login
+        rtMostraJogador();
+        if (RETRO.sessao()) {
+            RETRO.validar().then(r => {
+                if (r && r.ok) { rtAposLogin(); } else { rtMostraJogador(); rtAbreLogin(); }
+            }, () => { rtMostraJogador(); }); // sem rede: continua com a sessão guardada
+        } else {
+            rtAbreLogin();
+        }
 
         // Inicialização
         resizeCanvases();
