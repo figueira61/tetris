@@ -9,7 +9,7 @@
             --pad: 10px;
             --gap: 10px;
             --edge: 16px;      /* folga lateral da página */
-            --chrome: 190px;   /* altura ocupada por título, margens e controlos (sem o botão) */
+            --chrome: 200px;   /* altura ocupada por título, margens e controlos (sem o botão) */
             --vh: 100vh;
             --side: clamp(78px, 20vw, 160px);
             --btn: clamp(48px, 14vw, 72px);
@@ -83,7 +83,8 @@
         .sidebar {
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
+            justify-content: center;   /* grupo centrado na vertical em relação ao campo */
+            gap: clamp(8px, calc(var(--side) / 10), 14px);
             width: var(--side);
             min-height: calc(var(--cell) * 20 + 8px);
         }
@@ -93,7 +94,6 @@
             border: 2px solid #2a2d3d;
             border-radius: 8px;
             padding: clamp(6px, calc(var(--side) / 14), 12px);
-            margin-bottom: clamp(6px, calc(var(--side) / 14), 12px);
             text-align: center;
         }
 
@@ -232,8 +232,8 @@
         }
 
         .action-btn {
-            width: calc(var(--btn) + 8px);
-            height: calc(var(--btn) + 8px);
+            width: calc(var(--btn) + 18px);
+            height: calc(var(--btn) + 18px);
             border-radius: 50%;
             background: #ff007f;
             color: #fff;
@@ -272,13 +272,11 @@
             }
         }
 
-        /* Botão de pausa: no meio da linha de comandos */
+        /* Botão de pausa: último item da coluna lateral */
         .pause-btn {
-            width: auto;
+            width: 100%;
             margin-top: 0;
-            flex-shrink: 0;
-            padding: 10px 12px;
-            font-size: clamp(0.65rem, calc(var(--btn) * 0.2), 0.9rem);
+            padding: 10px 0;
         }
 
         @media (max-width: 600px) {
@@ -287,7 +285,7 @@
                 --pad: 6px;
                 --gap: 6px;
                 --edge: 8px;
-                --chrome: 172px;
+                --chrome: 182px;
                 --side: clamp(66px, 16vw, 90px);
                 --btn: clamp(44px, 12.5vw, 72px);
             }
@@ -365,6 +363,8 @@
                 <span>ESPAÇO</span> : Queda Instantânea<br>
                 <span>P</span> : Pausa
             </div>
+
+            <button id="start-btn" class="btn pause-btn" onclick="togglePause()" aria-label="Pausar">PAUSA</button>
         </div>
     </div>
 
@@ -374,7 +374,6 @@
             <button class="dpad-btn" data-action="down" aria-label="Descer">▼</button>
             <button class="dpad-btn" data-action="right" aria-label="Direita">▶</button>
         </div>
-        <button id="start-btn" class="btn pause-btn" onclick="togglePause()" aria-label="Pausar">PAUSA</button>
         <div class="action-buttons">
             <button class="action-btn rotate-btn" data-action="rotate" aria-label="Rodar">RODAR</button>
             <button class="action-btn" data-action="drop" aria-label="Queda instantânea">QUEDA</button>
