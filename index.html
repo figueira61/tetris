@@ -377,7 +377,8 @@
         .rt-barra { font-family: 'Courier New', Courier, monospace; display: flex; justify-content: space-between; align-items: center; gap: 8px; min-height: 18px; font-size: 11px; font-weight: 700; color: #8f93a2; }
         .rt-barra b { color: #00f0ff; }
         .rt-barra button { background: none; border: 0; text-decoration: underline; font: inherit; cursor: pointer; padding: 2px 4px; color: #00f0ff; }
-        .rt-hall-btn { background: #1a1c29; border: 1px solid #2a2d3d; color: #00f0ff; border-radius: 8px; padding: 4px 10px; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+        .rt-barra .rt-hall-btn { background: #1a1c29; border: 1px solid #2a2d3d; color: #00f0ff; border-radius: 8px; padding: 4px 10px; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; text-decoration: none; display: inline-block; }
+        .rt-acoes { display: flex; gap: 6px; }
     </style>
 </head>
 <body>
@@ -386,7 +387,10 @@
 
     <div class="rt-barra" style="width: min(var(--stage-w), 100%); margin-bottom: 8px; flex-wrap: wrap;">
         <span id="rt-jog"></span>
-        <button id="hallBtn" type="button" class="rt-hall-btn" aria-label="Hall of Fame">🏆 Hall</button>
+        <span class="rt-acoes">
+            <a id="temploBtn" class="rt-hall-btn" href="https://figueira61.github.io/Templo-do-Retro/" aria-label="Voltar ao Templo do Retro">🏠 Templo</a>
+            <button id="hallBtn" type="button" class="rt-hall-btn" aria-label="Hall of Fame">🏆 Hall</button>
+        </span>
         <span id="rt-estado" style="flex-basis: 100%; text-align: center;"></span>
     </div>
 
